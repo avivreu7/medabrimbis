@@ -1,81 +1,95 @@
-'use client'
+'use client';
 
-import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 export default function RegisterPage() {
-  const supabase = createClient()
-  const router = useRouter()
+  const supabase = createClient();
+  const router = useRouter();
 
-  const [mounted, setMounted] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loadingEmail, setLoadingEmail] = useState(false)
-  const [loadingGoogle, setLoadingGoogle] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // טופס
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName]   = useState('');
+  const [joinDate, setJoinDate]   = useState(''); // YYYY-MM-DD
+
+  const [loadingEmail, setLoadingEmail] = useState(false);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
 
   const handleEmailSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!email || !password) {
-      setError('נא למלא את כל השדות')
-      return
+    if (!email || !password || !firstName || !lastName || !joinDate) {
+      setError('נא למלא את כל השדות (כולל שם פרטי, משפחה ותאריך הצטרפות)');
+      return;
     }
 
-    setLoadingEmail(true)
-    setError(null)
+    setLoadingEmail(true);
+    setError(null);
 
     try {
+      // מעבירים את הנתונים כ-metadata כדי שהטריגר DB ייצור/יעדכן את השורה ב-profiles
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-      })
+        options: {
+          data: {
+            first_name: firstName.trim(),
+            last_name:  lastName.trim(),
+            join_date:  joinDate, // "YYYY-MM-DD"
+          },
+        },
+      });
 
       if (signUpError || !data.user) {
-        throw signUpError ?? new Error('Failed to sign up')
+        // Supabase rate limit יכול להחזיר שגיאה אם לוחצים מהר מדי
+        throw signUpError ?? new Error('שגיאה בהרשמה');
       }
 
-      // משתמש חדש יופנה לאישור
-      router.push('/pending-approval')
+      // מסך המתנה (עד לאישור או הפעלה ידנית)
+      router.push('/pending-approval');
     } catch (err: any) {
       const msg =
-        err?.message?.includes('User already registered')
+        err?.message?.includes('retry') || err?.message?.includes('seconds')
+          ? 'בשל אבטחה, ניתן לנסות שוב בעוד כמה שניות.'
+          : err?.message?.includes('registered')
           ? 'כבר קיימת הרשמה עם המייל הזה. נסה להתחבר.'
-          : 'שגיאה בהרשמה, נסה שנית'
-      setError(msg)
+          : 'שגיאה בהרשמה, נסה שנית.';
+      setError(msg);
     } finally {
-      setLoadingEmail(false)
+      setLoadingEmail(false);
     }
-  }
+  };
 
   const handleGoogleSignIn = async () => {
-    setLoadingGoogle(true)
-    setError(null)
+    setLoadingGoogle(true);
+    setError(null);
     try {
-      const redirectTo =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/auth/callback`
-          : '/auth/callback'
-
+      const origin =
+        typeof window !== 'undefined' ? window.location.origin : '';
+      // מפנים חזרה לקולבק שלנו ואז ל־/complete-profile כדי להשלים פרטים
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo },
-      })
-
-      if (error) throw error
-      // הדפדפן יעבור להפניית OAuth של גוגל
-    } catch (err) {
-      setError('שגיאה בהתחברות עם Google, נסה שוב.')
-      setLoadingGoogle(false)
+        options: {
+          redirectTo: `${origin}/auth/callback?next=/complete-profile`,
+        },
+      });
+      if (error) throw error;
+      // הדפדפן יופנה לגוגל — אין המשך כאן
+    } catch (err: any) {
+      setError('שגיאה בהתחברות עם Google, נסה שוב.');
+      setLoadingGoogle(false);
     }
-  }
-
-  if (!mounted) return null
+  };
 
   return (
     <div
@@ -89,6 +103,37 @@ export default function RegisterPage() {
         </h2>
 
         <form onSubmit={handleEmailSignUp} className="w-full space-y-4">
+          <div className="grid grid-cols-1 gap-3">
+            <input
+              type="text"
+              placeholder="שם פרטי"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1877F2]"
+              disabled={loadingEmail || loadingGoogle}
+              autoComplete="given-name"
+            />
+            <input
+              type="text"
+              placeholder="שם משפחה"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1877F2]"
+              disabled={loadingEmail || loadingGoogle}
+              autoComplete="family-name"
+            />
+            <label className="text-xs text-slate-600">
+              תאריך הצטרפות לקהילה
+            </label>
+            <input
+              type="date"
+              value={joinDate}
+              onChange={(e) => setJoinDate(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1877F2]"
+              disabled={loadingEmail || loadingGoogle}
+            />
+          </div>
+
           <input
             type="email"
             placeholder="כתובת מייל"
@@ -123,7 +168,6 @@ export default function RegisterPage() {
           <div className="flex-1 h-px bg-gray-200" />
         </div>
 
-        {/* כפתור Google עם אייקון */}
         <button
           onClick={handleGoogleSignIn}
           className="w-full border border-gray-300 hover:bg-gray-50 text-gray-800 py-3 rounded-lg font-medium text-base transition duration-200 disabled:opacity-60 flex items-center justify-center gap-2"
@@ -131,13 +175,7 @@ export default function RegisterPage() {
           aria-label="התחברות מהירה עם Google"
         >
           {/* אייקון Google (SVG) */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 48 48"
-            aria-hidden="true"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
             <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3A12.9 12.9 0 1 1 24 11a12.6 12.6 0 0 1 8.9 3.5l5.7-5.7A20.9 20.9 0 1 0 24 45c10.5 0 19.1-7.6 19.6-18 .1-.5 0-4.5 0-6.5z"/>
             <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8A12.9 12.9 0 0 1 24 11c3.5 0 6.6 1.3 9 3.5l5.7-5.7A20.9 20.9 0 0 0 24 3 20.9 20.9 0 0 0 6.3 14.7z"/>
             <path fill="#4CAF50" d="M24 45c5.4 0 10.3-2.1 13.9-5.5l-6.4-5.2A12.9 12.9 0 0 1 11.8 28l-6.7 5.2A20.9 20.9 0 0 0 24 45z"/>
@@ -159,5 +197,5 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

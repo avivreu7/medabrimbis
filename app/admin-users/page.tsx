@@ -14,9 +14,7 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => setMounted(true), []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -28,34 +26,36 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // Step 1: Sign in the user
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError || !data?.user) throw new Error('פרטי התחברות שגויים');
 
-      if (signInError || !data?.user) {
-        throw new Error('פרטי התחברות שגויים');
-      }
-
-      // Step 2: Check if the user is an admin
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('id, role, status')
         .eq('id', data.user.id)
         .single();
 
-      if (profileError || profileData?.role !== 'admin') {
-        // If not an admin, sign them out and show an error
+      if (profileError || !profile) {
+        // אין פרופיל? ניצור בסיסי ואז נחסום גישה
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email: data.user.email ?? null,
+          role: 'member',
+          status: 'pending',
+        });
         await supabase.auth.signOut();
         throw new Error('אינך מורשה לגשת לאזור המנהלים');
       }
-      
-      // Step 3: If they are an admin, redirect to the admin dashboard
-      router.push('admin-users/dashboard');
 
+      if (profile.role !== 'admin' || profile.status !== 'approved') {
+        await supabase.auth.signOut();
+        throw new Error('אינך מורשה לגשת לאזור המנהלים');
+      }
+
+      // ✅ נתיב עם סלאש בתחלה!
+      router.push('/admin-users/dashboard');
     } catch (err: any) {
-      setError(err.message || 'אירעה שגיאה. נסה שוב.');
+      setError(err?.message || 'אירעה שגיאה. נסה שוב.');
     } finally {
       setLoading(false);
     }
@@ -70,12 +70,11 @@ export default function AdminLoginPage() {
       style={{ backgroundImage: "url('/images/background.jpg')" }}
     >
       <div className="flex flex-col items-center w-full max-w-sm p-8 bg-white bg-opacity-80 backdrop-blur-sm rounded-lg shadow-lg">
-        {/* Color Change Back to Blue */}
         <h1 className="text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#1877F2] to-[#42A5F5] drop-shadow-md animate-fade-in mb-2">
           אזור מנהלים
         </h1>
         <p className="text-lg text-gray-700 text-center mb-8">
-          כניסה למנהלי קהילת "מדברים ביז"
+          כניסה למנהלי קהילת "מדברים עסקאות"
         </p>
 
         <div className="w-full">
@@ -86,7 +85,6 @@ export default function AdminLoginPage() {
               placeholder="מייל מנהל"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              // Color Change Back to Blue
               className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1877F2]"
               disabled={loading}
             />
@@ -96,13 +94,11 @@ export default function AdminLoginPage() {
               placeholder="סיסמה"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              // Color Change Back to Blue
               className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1877F2]"
               disabled={loading}
             />
             <button
               type="submit"
-              // Color Change Back to Blue
               className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white py-3 rounded-lg font-semibold text-base transition duration-200 disabled:opacity-75"
               disabled={loading}
             >
@@ -111,16 +107,15 @@ export default function AdminLoginPage() {
           </form>
 
           {error && <p className="mt-3 text-sm text-red-500 text-center">{error}</p>}
-          
+
           <div className="text-sm text-center mt-6">
-            {/* Color Change Back to Blue */}
             <Link href="/" className="text-[#1877F2] underline hover:text-[#1458c8]">
               חזרה לכניסה הרגילה
             </Link>
           </div>
         </div>
       </div>
-      
+
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-10px); }
