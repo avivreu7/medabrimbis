@@ -433,11 +433,11 @@ export default function PersonalPortfolioClient() {
                     <div className="flex flex-col items-end">
                       <span className={`font-bold text-2xl ${balanceColor}`}>{formatCurrency(currentBalance, 2, 2)}</span>
                       <span className={`text-sm font-semibold ${balanceColor}`}>
-                      סה"כ רווח/הפסד  ({percentageChange >= 0 ? '+' : ''}{formatNumber(percentageChange, 2, 2)}%)
+                      סה"כ  ({percentageChange >= 0 ? '+' : ''}{formatNumber(percentageChange, 2, 2)}%)
                       </span>
                       {/* חדש: רווח/הפסד כספי כולל מול ההתחלה */}
                       <span className={`text-sm font-semibold ${netChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      סה"כ רווח/הפסד  {netChange >= 0 ? '+' : '-'}
+                      סה"כ  {netChange >= 0 ? '+' : '-'}
                         {formatCurrency(Math.abs(netChange), 2, 2)}
                       </span>
                     </div>

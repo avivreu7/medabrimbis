@@ -379,12 +379,12 @@ export default function AdminDealsPage() {
 
                       {/* אחוז שינוי ממומש בלבד */}
                       <span className={`text-sm font-semibold ${balanceColor}`}>
-                      סה"כ רווח/הפסד  ({percentageChange >= 0 ? '+' : ''}{formatNumber(percentageChange, 2, 2)}%)
+                      סה"כ  ({percentageChange >= 0 ? '+' : ''}{formatNumber(percentageChange, 2, 2)}%)
                       </span>
 
                       {/* סכום שינוי ממומש בדולרים */}
                       <span className={`text-sm font-semibold ${balanceColor}`}>
-                      סה"כ רווח/הפסד  {realizedNet >= 0 ? '+' : '-'}
+                      סה"כ  {realizedNet >= 0 ? '+' : '-'}
                         {formatCurrency(Math.abs(realizedNet))}  
                       </span>
                     </div>
