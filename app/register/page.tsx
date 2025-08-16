@@ -15,11 +15,10 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
 
   const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName]   = useState('');
-  const [joinDate, setJoinDate]   = useState(''); // YYYY-MM-DD
+  const [lastName, setLastName] = useState('');
+  const [joinDate, setJoinDate] = useState(''); // YYYY-MM-DD
 
   const [loadingEmail, setLoadingEmail] = useState(false);
-  const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
@@ -44,8 +43,8 @@ export default function RegisterPage() {
         options: {
           data: {
             first_name: firstName.trim(),
-            last_name:  lastName.trim(),
-            join_date:  joinDate, // "YYYY-MM-DD"
+            last_name: lastName.trim(),
+            join_date: joinDate, // "YYYY-MM-DD"
           },
         },
       });
@@ -70,27 +69,6 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setLoadingGoogle(true);
-    setError(null);
-    try {
-      const origin =
-        typeof window !== 'undefined' ? window.location.origin : '';
-      // מפנים חזרה לקולבק שלנו ואז ל־/complete-profile כדי להשלים פרטים
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${origin}/auth/callback?next=/complete-profile`,
-        },
-      });
-      if (error) throw error;
-      // הדפדפן יופנה לגוגל — אין המשך כאן
-    } catch (err: any) {
-      setError('שגיאה בהתחברות עם Google, נסה שוב.');
-      setLoadingGoogle(false);
-    }
-  };
-
   return (
     <div
       dir="rtl"
@@ -110,7 +88,7 @@ export default function RegisterPage() {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1877F2]"
-              disabled={loadingEmail || loadingGoogle}
+              disabled={loadingEmail}
               autoComplete="given-name"
             />
             <input
@@ -119,7 +97,7 @@ export default function RegisterPage() {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1877F2]"
-              disabled={loadingEmail || loadingGoogle}
+              disabled={loadingEmail}
               autoComplete="family-name"
             />
             <label className="text-xs text-slate-600">
@@ -130,7 +108,7 @@ export default function RegisterPage() {
               value={joinDate}
               onChange={(e) => setJoinDate(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1877F2]"
-              disabled={loadingEmail || loadingGoogle}
+              disabled={loadingEmail}
             />
           </div>
 
@@ -140,7 +118,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1877F2]"
-            disabled={loadingEmail || loadingGoogle}
+            disabled={loadingEmail}
             autoComplete="email"
           />
           <input
@@ -149,40 +127,18 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1877F2]"
-            disabled={loadingEmail || loadingGoogle}
+            disabled={loadingEmail}
             autoComplete="new-password"
           />
 
           <button
             type="submit"
             className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white py-3 rounded-lg font-semibold text-base transition duration-200 disabled:opacity-60"
-            disabled={loadingEmail || loadingGoogle}
+            disabled={loadingEmail}
           >
             {loadingEmail ? 'נרשם...' : 'הרשמה במייל'}
           </button>
         </form>
-
-        <div className="my-4 flex items-center w-full">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="mx-3 text-xs text-gray-500">או</span>
-          <div className="flex-1 h-px bg-gray-200" />
-        </div>
-
-        <button
-          onClick={handleGoogleSignIn}
-          className="w-full border border-gray-300 hover:bg-gray-50 text-gray-800 py-3 rounded-lg font-medium text-base transition duration-200 disabled:opacity-60 flex items-center justify-center gap-2"
-          disabled={loadingEmail || loadingGoogle}
-          aria-label="התחברות מהירה עם Google"
-        >
-          {/* אייקון Google (SVG) */}
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-            <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3A12.9 12.9 0 1 1 24 11a12.6 12.6 0 0 1 8.9 3.5l5.7-5.7A20.9 20.9 0 1 0 24 45c10.5 0 19.1-7.6 19.6-18 .1-.5 0-4.5 0-6.5z"/>
-            <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8A12.9 12.9 0 0 1 24 11c3.5 0 6.6 1.3 9 3.5l5.7-5.7A20.9 20.9 0 0 0 24 3 20.9 20.9 0 0 0 6.3 14.7z"/>
-            <path fill="#4CAF50" d="M24 45c5.4 0 10.3-2.1 13.9-5.5l-6.4-5.2A12.9 12.9 0 0 1 11.8 28l-6.7 5.2A20.9 20.9 0 0 0 24 45z"/>
-            <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3A13 13 0 0 1 24 41c3.3 0 6.3-1.3 8.5-3.6l6.4 5.2C35.3 45.1 29.9 47 24 47 12 47 2 37 2 25S12 3 24 3c5.9 0 11.3 2.4 15.2 6.1l-5.7 5.7C31.9 12.3 28.8 11 25.3 11a13 13 0 0 0-13 13c0 7.2 5.8 13 13 13 6.4 0 11.8-4.6 12.7-10.6H24v-8h19.6c.3 1.2 .4 2.5 .4 3.9 0 2-.1 6 0 6.5z"/>
-          </svg>
-          {loadingGoogle ? 'מפנה לגוגל…' : 'התחברות מהירה עם Google'}
-        </button>
 
         {error && <p className="mt-3 text-sm text-red-500 text-center">{error}</p>}
 
